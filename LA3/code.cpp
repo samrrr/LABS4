@@ -15,297 +15,6 @@ const int CB = 0;
 
 
 
-
-struct SP_EL
-{
-	int ch;
-	SP_EL *n;
-};
-
-class SET2
-{
-private:
-public:
-	SP_EL *spis;
-	SP_EL *last;
-
-
-	~SET2()
-	{
-		SP_EL *p = spis;
-		while (p)
-		{
-			SP_EL *p1 = p;
-			p = p->n;
-			delete p1;
-		}
-	}
-
-	SET2()
-	{
-		spis = nullptr;
-		last = nullptr;
-	}
-	void put()
-	{
-
-		for (SP_EL *p = spis; p; p = p->n)
-		{
-			cout << p->ch;
-			if (p->n)
-				cout << " ";
-		}
-	}
-
-	const SET2& operator= (const SET2 &_a)
-	{
-		SP_EL *p;
-
-		p = spis;
-		while (p)
-		{
-			SP_EL *p1 = p;
-			p = p->n;
-			delete p1;
-		}
-		if (_a.spis == nullptr)
-		{
-			spis = nullptr;
-			last = nullptr;
-			return *this;
-		}
-
-		SP_EL *l;
-		SP_EL *el = _a.spis;
-
-		spis = new SP_EL;
-		spis->ch = el->ch;
-		l = spis;
-		el = el->n;
-
-		last = l;
-
-		for (; el; el = el->n)
-		{
-			p = new SP_EL;
-			p->ch = el->ch;
-			last = p;
-			l->n = p;
-			l = p;
-		}
-
-		l->n = nullptr;
-
-		return *this;
-	}
-	SET2(SET2 &&_a)
-	{
-		spis = _a.spis;
-		last = _a.last;
-		_a.spis = nullptr;
-		_a.last = nullptr;
-
-	}
-	SET2(const SET2 &_a)
-	{
-		if (_a.spis == nullptr)
-		{
-			spis = nullptr;
-			return;
-		}
-		SP_EL *p;
-		SP_EL *l;
-		SP_EL *el = _a.spis;
-
-		spis = new SP_EL;
-		spis->ch = el->ch;
-		l = spis;
-		el = el->n;
-
-		for (; el; el = el->n)
-		{
-			p = new SP_EL;
-			p->ch = el->ch;
-			l->n = p;
-			l = p;
-		}
-		last = l;
-		l->n = nullptr;
-
-	}
-	void addel(int i)
-	{
-		SET2 temp;
-		temp.spis = new SP_EL;
-		temp.spis->n = nullptr;
-		temp.spis->ch = i;
-		*this = *this | temp;
-	}
-	void delel(int i)
-	{
-		SET2 temp;
-		temp.spis = new SP_EL;
-		temp.spis->n = nullptr;
-		temp.spis->ch = i;
-		*this = *this & temp;
-	}
-	friend SET2 operator & (const SET2 &_a, const SET2 &_b)
-	{
-		SET2 c;
-
-		SP_EL *p;
-
-		for (SP_EL *p1 = _a.spis, *p2 = _b.spis; p1 != nullptr && p2 != nullptr;
-			p1->ch > p2->ch ? p2 = p2->n : p1 = p1->n)
-			if (p1->ch == p2->ch)
-			{
-				if (c.spis == nullptr)
-				{
-					p = new SP_EL;
-					c.spis = p;
-					c.last = p;
-					p->n = nullptr;
-				}
-				else
-				{
-					p->n = new SP_EL;
-					p = p->n;
-					c.last = p;
-					p->n = nullptr;
-				}
-				p->ch = p1->ch;
-			}
-
-
-
-		return c;
-	}
-	friend SET2 operator | (const SET2 &_a, const SET2 &_b)
-	{
-		SET2 c;
-
-		SP_EL *p1 = _a.spis, *p2 = _b.spis;
-		SP_EL *p = nullptr;
-
-		c.spis = 0;
-		c.last = 0;
-
-		while (p1 || p2)
-		{
-			if (p1 == 0 || p2 != 0 && p1->ch > p2->ch)
-			{
-				if (p == nullptr || p2->ch != p->ch)
-				{
-					if (p == nullptr)
-					{
-						p = new SP_EL;
-						c.spis = p;
-					}
-					else
-					{
-						p->n = new SP_EL;
-						p = p->n;
-					}
-					c.last = p;
-					p->n = nullptr;
-					p->ch = p2->ch;
-				}
-				p2 = p2->n;
-			}
-			else
-			{
-				if (p == nullptr || p1->ch != p->ch)
-				{
-					if (p == nullptr)
-					{
-						p = new SP_EL;
-						c.spis = p;
-					}
-					else
-					{
-						p->n = new SP_EL;
-						p = p->n;
-					}
-					c.last = p;
-					p->n = nullptr;
-					p->ch = p1->ch;
-				}
-				p1 = p1->n;
-			}
-		}
-
-		return c;
-	}
-	friend SET2 operator / (const SET2 &_a, const SET2 &_b)
-	{
-		SET2 c(_a);
-
-		SP_EL *p;
-
-		for (SP_EL **p1 = &c.spis, *p2 = _b.spis; (*p1) && p2;)
-		{
-			if ((*p1)->ch == p2->ch)
-			{
-				p = (*p1)->n;
-				delete (*p1);
-				*p1 = p;
-
-			}
-
-			if (*p1)
-				if ((*p1)->ch > p2->ch)
-				{
-					p2 = p2->n;
-				}
-				else
-				{
-					p1 = &((*p1)->n);
-				}
-
-		}
-		p = c.spis;
-		if (p)
-			while (p->n)
-				p = p->n;
-		c.last = p;
-
-		return c;
-	}
-	friend SET2 operator ^ (const SET2 &_a, const SET2 &_b)
-	{
-		SET2 c = (_a / _b) | (_b / _a);
-		return c;
-	}
-
-
-
-	void add_part(SET2 &_b)
-	{
-		if (_b.spis)
-		{
-			if (spis)
-			{
-				last->n = _b.spis;
-				last = _b.last;
-
-				_b.spis = nullptr;
-				_b.last = nullptr;
-			}
-			else
-			{
-				spis = _b.spis;
-				last = _b.last;
-
-				_b.spis = nullptr;
-				_b.last = nullptr;
-			}
-		}
-	}
-
-};
-
-
-
 class TEXSEL
 {
 public:
@@ -383,21 +92,6 @@ public:
 				pr = nullptr;
 			}
 		}
-	}
-	SET2 get()
-	{
-		SET2 res;
-		if (pl)
-			res.add_part(pl->get());
-		SET2 temp;
-
-		temp.addel(d);
-
-		res.add_part(temp);
-		if (pr)
-			res.add_part(pr->get());
-
-		return res;
 	}
 	~NODE()
 	{
@@ -730,33 +424,7 @@ public:
 	}
 	void InTREE(char*);
 	void add_last(int el);
-	void set(vector<int> ma);
-	SET2 get_l()
-	{
-		SET2 res;
-		if (root)
-			res = root->get();
-		return res;
-	}
-	void grand(int els)
-	{
-		int la = -1;
-		vector<int> tr;
-		tr.resize(els);
-		for (int i = 0; i < els; i++)
-		{
-			la = la + 1 + rand() % 3;
-
-			tr[i] = la;
-		}
-		this->set(tr);
-	}
 	void OutTREE();
-
-	void fix_nig()
-	{
-
-	}
 
 	void subst(vector<int> ma, int nom)
 	{
@@ -1167,24 +835,8 @@ void TREE::add_last(int el)
 }
 
 
-void TREE::set(vector<int> ma)
-{
-	delete root;
-	int ll = 0;
-	int vv = 1;
-	while (vv <= ma.size())
-	{
-		vv = vv << 1;
-		ll++;
-	}
-
-	root = new NODE(&ma[0], ma.size(), ll - 1, nullptr);
-}
-
-
 int main()
 {
-	TREE A, B, C, D, E;
 
 	TREE t;
 
@@ -1198,16 +850,8 @@ int main()
 	t.erase(1, 10);
 	t.OutTREE();
 	system("pause");
-
-	for (int i = 0; i < 30; i++)
-	{
-		//t.add_last(rand()%30);
-
-		//t.OutTREE();
-		//system("pause");
-	}
-
-	for (int i = 0; i < 30; i++)
+	
+	for (int i = 0; i < 4; i++)
 	{
 		t.OutTREE();
 		system("pause");
@@ -1217,31 +861,5 @@ int main()
 	}
 
 
-	A.grand(27);
-	B.grand(27);
-	C.grand(27);
-	D.grand(27);
-	E.grand(27);
-
-	cout << "A" << endl;
-	A.OutTREE();
-	cout << "B" << endl;
-	B.OutTREE();
-	cout << "C" << endl;
-	C.OutTREE();
-	cout << "D" << endl;
-	D.OutTREE();
-	cout << "E" << endl;
-	E.OutTREE();
-	/*
-	cout << "A&B" << endl;
-	(A&B).OutTREE();
-	cout << "C&D&E" << endl;
-	(C&D&E).OutTREE();
-	cout << "A&B^C&D&E" << endl;
-	((C&D&E)^(A&B)).OutTREE();
-	*/
-
-	cout << endl;
 	system("pause");
 }
