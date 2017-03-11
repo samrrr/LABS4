@@ -37,16 +37,192 @@ public:
 };
 
 
+
+class NODE;
+
+struct SP_EL
+{
+	NODE *lin;
+	SP_EL *n;
+};
+
+class SET2
+{
+private:
+public:
+	SP_EL *spis;
+	SP_EL *last;
+
+
+	~SET2()
+	{
+		SP_EL *p = spis;
+		while (p)
+		{
+			SP_EL *p1 = p;
+			p = p->n;
+			delete p1;
+		}
+	}
+
+	SET2()
+	{
+		spis = nullptr;
+		last = nullptr;
+	}
+	void put()
+	{
+
+		for (SP_EL *p = spis; p; p = p->n)
+		{
+			cout << p->lin;
+			if (p->n)
+				cout << " ";
+		}
+	}
+	void killrep();
+	const SET2& operator= (const SET2 &_a)
+	{
+		SP_EL *p;
+
+		p = spis;
+		while (p)
+		{
+			SP_EL *p1 = p;
+			p = p->n;
+			delete p1;
+		}
+		if (_a.spis == nullptr)
+		{
+			spis = nullptr;
+			last = nullptr;
+			return *this;
+		}
+
+		SP_EL *l;
+		SP_EL *el = _a.spis;
+
+		spis = new SP_EL;
+		spis->lin = el->lin;
+		l = spis;
+		el = el->n;
+
+		last = l;
+
+		for (; el; el = el->n)
+		{
+			p = new SP_EL;
+			p->lin = el->lin;
+			last = p;
+			l->n = p;
+			l = p;
+		}
+
+		l->n = nullptr;
+
+		return *this;
+	}
+	SET2(SET2 &&_a)
+	{
+		spis = _a.spis;
+		last = _a.last;
+		_a.spis = nullptr;
+		_a.last = nullptr;
+
+	}
+	SET2(const SET2 &_a)
+	{
+		if (_a.spis == nullptr)
+		{
+			spis = nullptr;
+			return;
+		}
+		SP_EL *p;
+		SP_EL *l;
+		SP_EL *el = _a.spis;
+
+		spis = new SP_EL;
+		spis->lin = el->lin;
+		l = spis;
+		el = el->n;
+
+		for (; el; el = el->n)
+		{
+			p = new SP_EL;
+			p->lin = el->lin;
+			l->n = p;
+			l = p;
+		}
+		last = l;
+		l->n = nullptr;
+
+	}
+	void addel(NODE *i)
+	{
+		SET2 temp;
+		temp.spis = new SP_EL;
+		temp.spis->n = nullptr;
+		temp.spis->lin = i;
+		*this = *this | temp;
+	}
+	void delel(NODE *i)
+	{
+		SET2 temp;
+		temp.spis = new SP_EL;
+		temp.spis->n = nullptr;
+		temp.spis->lin = i;
+		*this = *this & temp;
+	}
+	friend SET2 operator & (const SET2 &_a, const SET2 &_b);
+	friend SET2 operator | (const SET2 &_a, const SET2 &_b);
+	friend SET2 operator / (const SET2 &_a, const SET2 &_b);
+	friend SET2 operator ^ (const SET2 &_a, const SET2 &_b)
+	{
+		SET2 c = (_a / _b) | (_b / _a);
+		return c;
+	}
+
+
+
+	void add_part(SET2 &_b)
+	{
+		if (_b.spis)
+		{
+			if (spis)
+			{
+				last->n = _b.spis;
+				last = _b.last;
+
+				_b.spis = nullptr;
+				_b.last = nullptr;
+			}
+			else
+			{
+				spis = _b.spis;
+				last = _b.last;
+
+				_b.spis = nullptr;
+				_b.last = nullptr;
+			}
+		}
+	}
+
+};
+
+
+
+
+
 class NODE
 {
 
 	int col; //цвет
-	int d;	 //тег узла
 	int num; //количество элементов
 	NODE * up;  // папаша
 	NODE * pl;	// левый сын
 	NODE * pr;	// правый сын
 public:
+	int d;	 //тег узла
 	NODE() : pl(nullptr), pr(nullptr), d(rand() % 20), col(rand() % 2), num(1) {} // конструктор узла
 	NODE(int el, int _col, NODE* ol) : pl(nullptr), pr(nullptr), d(el), col(_col), up(ol), num(1) {} // конструктор узла
 	NODE(int *ma, int n, int lev, NODE* _up)
@@ -98,6 +274,25 @@ public:
 		if (pl) delete pl; // деструктор (уничтожает поддерево)
 		if (pr) delete pr;
 	}
+
+
+	SET2 get()
+	{
+		SET2 res;
+		if (pl)
+			res.add_part(pl->get());
+		SET2 temp;
+
+		temp.addel(this);
+
+		res.add_part(temp);
+		if (pr)
+			res.add_part(pr->get());
+
+		return res;
+	}
+
+
 	friend class TREE;
 	friend int put_node(NODE * n, TEXSEL **s, int x, int y);
 	friend char mark_pr(NODE * n, char ch);
@@ -140,9 +335,9 @@ public:
 		pl = sww->pl;
 		pr = sww->pr;
 
-		sww->up=tu;
-		sww->pl=tl;
-		sww->pr=tr;
+		sww->up = tu;
+		sww->pl = tl;
+		sww->pr = tr;
 
 		auto tcol = col;
 
@@ -422,6 +617,10 @@ public:
 	{
 		root = nullptr;
 	}
+	~TREE()
+	{
+		delete root;
+	}
 	void InTREE(char*);
 	void add_last(int el);
 	void OutTREE();
@@ -511,22 +710,22 @@ public:
 						}
 					}
 					else
-					if (lli->up->pr == lli)
-					{
-						if (lli->col == CB)
+						if (lli->up->pr == lli)
 						{
-							(lli)->up->pr = nullptr;
-							(lli)->up->fix_nig_r();
-							root_fix();
-							lli->del();
-						}
-						else
-						{
-							(lli)->up->pr = nullptr;
+							if (lli->col == CB)
+							{
+								(lli)->up->pr = nullptr;
+								(lli)->up->fix_nig_r();
+								root_fix();
+								lli->del();
+							}
+							else
+							{
+								(lli)->up->pr = nullptr;
 
-							lli->del();
+								lli->del();
+							}
 						}
-					}
 
 				}
 				else
@@ -536,9 +735,147 @@ public:
 				}
 
 			}
-			
+
 		}
 
+	}
+
+	SET2 get_l()
+	{
+		SET2 res;
+		if (root)
+			res = root->get();
+		return res;
+	}
+
+	TREE(TREE &&_a)
+	{
+		root = _a.root;
+		_a.root = nullptr;
+
+		pr_list = _a.pr_list;
+	}
+
+	friend TREE operator &(TREE &_a, TREE &_b)
+	{
+		SET2 la, lb;
+		la = _a.get_l();
+		lb = _b.get_l();
+		SET2 lc = la & lb;
+		TREE c;
+
+		int size = 0;
+		auto p = lc.spis;
+		while (p)
+		{
+			p = p->n;
+			size++;
+		}
+		vector <int> vec;
+		vec.resize(size);
+
+		p = lc.spis;
+
+		for (int i = 0; i < size; i++)
+		{
+			vec[i] = p->lin->d;
+			p = p->n;
+		}
+
+		c.subst(vec, 0);
+		return c;
+	}
+
+	friend TREE operator |(TREE &_a, TREE &_b)
+	{
+		SET2 la, lb;
+		la = _a.get_l();
+		lb = _b.get_l();
+		SET2 lc = la | lb;
+		TREE c;
+
+		int size = 0;
+		auto p = lc.spis;
+		while (p)
+		{
+			p = p->n;
+			size++;
+		}
+		vector <int> vec;
+		vec.resize(size);
+
+		p = lc.spis;
+
+		for (int i = 0; i < size; i++)
+		{
+			vec[i] = p->lin->d;
+			p = p->n;
+		}
+
+		c.subst(vec, 0);
+		return c;
+	}
+
+	friend TREE operator /(TREE &_a, TREE &_b)
+	{
+		SET2 la, lb;
+		la = _a.get_l();
+		lb = _b.get_l();
+		SET2 lc = la / lb;
+		TREE c;
+
+		int size = 0;
+		auto p = lc.spis;
+		while (p)
+		{
+			p = p->n;
+			size++;
+		}
+		vector <int> vec;
+		vec.resize(size);
+
+		p = lc.spis;
+
+		for (int i = 0; i < size; i++)
+		{
+			vec[i] = p->lin->d;
+			p = p->n;
+		}
+
+		c.subst(vec, 0);
+		return c;
+	}
+
+	friend TREE operator ^(TREE &_a, TREE &_b)
+	{
+		SET2 la, lb;
+		la = _a.get_l();
+		lb = _b.get_l();
+		la.killrep();
+		lb.killrep();
+		SET2 lc = la ^ lb;
+		TREE c;
+
+		int size = 0;
+		auto p = lc.spis;
+		while (p)
+		{
+			p = p->n;
+			size++;
+		}
+		vector <int> vec;
+		vec.resize(size);
+
+		p = lc.spis;
+
+		for (int i = 0; i < size; i++)
+		{
+			vec[i] = p->lin->d;
+			p = p->n;
+		}
+
+		c.subst(vec, 0);
+		return c;
 	}
 
 	void root_fix()
@@ -682,7 +1019,7 @@ void NODE::add_fix()
 {
 	if (col == CB)
 		return;
-	cout << "fix st for " << this->d << endl;
+	//cout << "fix st for " << this->d << endl;
 
 
 	NODE *diada, *grandf;
@@ -711,10 +1048,10 @@ void NODE::add_fix()
 
 	if (diada == nullptr || diada->col == CB)
 	{
-		cout << "diada chern" << endl;
+		//cout << "diada chern" << endl;
 		if (up->pl == this && grandf->pr == up)
 		{
-			cout << "need bit fixr " << up->d << endl;
+			//cout << "need bit fixr " << up->d << endl;
 			up->rotater();
 			pr->add_fix();
 			return;
@@ -722,7 +1059,7 @@ void NODE::add_fix()
 		else
 			if (up->pr == this && grandf->pl == up)
 			{
-				cout << "need bit fixl" << up->d << endl;
+				//cout << "need bit fixl" << up->d << endl;
 				up->rotatel();
 				pl->add_fix();
 				return;
@@ -739,12 +1076,12 @@ void NODE::add_fix()
 			//tr3 = (NODE*)(((int)up->pl ^ (int)up->pr) ^ (int)this);
 			if (grandf->pl == diada)
 			{
-				cout << "roatl" << grandf->d << endl;
+				//cout << "roatl" << grandf->d << endl;
 				grandf->rotatel();
 			}
 			else
 			{
-				cout << "roatr" << grandf->d << endl;
+				//cout << "roatr" << grandf->d << endl;
 				grandf->rotater();
 			}
 		}
@@ -806,8 +1143,8 @@ void TREE::OutTREE()
 	}
 
 	set_color(15, 0);
-	for (auto i = pr_list.begin();i!=pr_list.end(); i++)
-		cout << (*i)->d<<" ";
+	for (auto i = pr_list.begin(); i != pr_list.end(); i++)
+		cout << (*i)->d << " ";
 	cout << endl;
 
 	delete[]ss;
@@ -841,25 +1178,177 @@ int main()
 	TREE t;
 
 
-	t.subst({ 0, 2, 3, 4, 6, 7, 8 }, 0);
-	t.OutTREE();
-	system("pause");
-	t.merge({ 1, 5, 9, 9, 9, 11, 12, 13 });
-	t.OutTREE();
-	system("pause");
-	t.erase(1, 10);
-	t.OutTREE();
-	system("pause");
+	TREE A, B, C, D, E;
+
+	A.subst({ 0, 2,2, 3, 4, 6, 2,7, 8 }, 0);
+	B.subst({ 2, 3, 4, 5, 6, 7 }, 0);
+	C.subst({ 5, 6, 4, 2, 9 }, 0);
+	D.subst({ 7, 50, 51, 6 }, 0);
+	E.subst({ 3, 4, 9, 1 }, 0);
 	
-	for (int i = 0; i < 4; i++)
+	cout << "A^B\n";
+	(A^B).OutTREE();
+	cout << "C&D\n";
+	(C&D).OutTREE();
+	cout << "(A^B)/(C&D)\n";
+	((A^B) / (C&D)).OutTREE();
+	cout << "(A^B)/(C&D)|E\n";
+	( (A^B)/(C&D)|E ).OutTREE();
+	system("pause");
+
+	A.subst({0,1,0},2);
+	A.OutTREE();
+
+	system("pause");
+}
+
+
+
+
+
+
+
+SET2 operator & (const SET2 &_a, const SET2 &_b)
+{
+	SET2 c;
+
+	SP_EL *p;
+
+	for (SP_EL *p1 = _a.spis, *p2 = _b.spis; p1 != nullptr && p2 != nullptr;
+		p1->lin->d > p2->lin->d ? p2 = p2->n : p1 = p1->n)
+		if (p1->lin->d == p2->lin->d)
+		{
+			if (c.spis == nullptr)
+			{
+				p = new SP_EL;
+				c.spis = p;
+				c.last = p;
+				p->n = nullptr;
+			}
+			else
+			{
+				p->n = new SP_EL;
+				p = p->n;
+				c.last = p;
+				p->n = nullptr;
+			}
+			p->lin = p1->lin;
+		}
+
+
+
+	return c;
+}
+SET2 operator | (const SET2 &_a, const SET2 &_b)
+{
+	SET2 c;
+
+	SP_EL *p1 = _a.spis, *p2 = _b.spis;
+	SP_EL *p = nullptr;
+
+	c.spis = 0;
+	c.last = 0;
+
+	while (p1 || p2)
 	{
-		t.OutTREE();
-		system("pause");
-		int g = rand() % (30-i);
-		g = 0;
-		t.erase(g,g);
+		if (p1 == 0 || p2 != 0 && p1->lin->d > p2->lin->d)
+		{
+			if (p == nullptr || p2->lin->d != p->lin->d)
+			{
+				if (p == nullptr)
+				{
+					p = new SP_EL;
+					c.spis = p;
+				}
+				else
+				{
+					p->n = new SP_EL;
+					p = p->n;
+				}
+				c.last = p;
+				p->n = nullptr;
+				p->lin = p2->lin;
+			}
+			p2 = p2->n;
+		}
+		else
+		{
+			if (p == nullptr || p1->lin->d != p->lin->d)
+			{
+				if (p == nullptr)
+				{
+					p = new SP_EL;
+					c.spis = p;
+				}
+				else
+				{
+					p->n = new SP_EL;
+					p = p->n;
+				}
+				c.last = p;
+				p->n = nullptr;
+				p->lin = p1->lin;
+			}
+			p1 = p1->n;
+		}
+	}
+
+	return c;
+}
+SET2 operator / (const SET2 &_a, const SET2 &_b)
+{
+	SET2 c(_a);
+
+	SP_EL *p;
+
+	for (SP_EL **p1 = &c.spis, *p2 = _b.spis; (*p1) && p2;)
+	{
+		if ((*p1)->lin->d == p2->lin->d)
+		{
+			p = (*p1)->n;
+			delete (*p1);
+			*p1 = p;
+
+		}
+
+		if (*p1)
+			if ((*p1)->lin->d > p2->lin->d)
+			{
+				p2 = p2->n;
+			}
+			else
+			{
+				p1 = &((*p1)->n);
+			}
+
+	}
+	p = c.spis;
+	if (p)
+		while (p->n)
+			p = p->n;
+	c.last = p;
+
+	return c;
+}
+void SET2::killrep()
+{
+	auto pp = spis;
+
+	if (!pp)
+		return;
+
+	while (pp->n)
+	{
+		if (pp->lin->d == pp->n->lin->d)
+		{
+			auto temp = pp->n;
+			pp->n = pp->n->n;
+			temp->n = nullptr;
+			delete temp;
+		}
+		else
+			pp = pp->n;
 	}
 
 
-	system("pause");
 }
